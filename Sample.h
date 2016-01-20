@@ -23,6 +23,8 @@
 #pragma once
 
 #include <Urho3D/Engine/Application.h>
+#include "Common.h"
+#include "ThirdPersonCamera.h"
 
 namespace Urho3D
 {
@@ -78,6 +80,7 @@ protected:
     SharedPtr<Scene> scene_;
     /// Camera scene node.
     SharedPtr<Node> cameraNode;
+    SharedPtr<ThirdPersonCamera> thirdPersonCamera;
     /// Camera yaw angle.
     float yaw_;
     /// Camera pitch angle.

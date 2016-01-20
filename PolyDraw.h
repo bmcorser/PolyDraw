@@ -136,8 +136,6 @@ private:
     void SubscribeToEvents();
     /// Read input and moves the camera.
     void MoveCamera(float timeStep);
-    /// Set path start or end point.
-    void SetPathPoint();
     /// Add or remove object.
     void AddOrRemoveObject();
     /// Create a mushroom object at position.

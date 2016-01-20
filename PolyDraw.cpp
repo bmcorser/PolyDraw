@@ -126,7 +126,7 @@ void Navigation::CreateScene()
     Camera* camera = cameraNode->CreateComponent<Camera>();
     // coupled to code above, because Camera component must be a child
     // could return a Camera* ?
-    ThirdPersonCamera* thirdPersonCamera = cameraRootNode->CreateComponent<ThirdPersonCamera>();
+    thirdPersonCamera = cameraRootNode->CreateComponent<ThirdPersonCamera>();
     thirdPersonCamera->SetTargetNode(jackNode_);
     // camera->SetFarClip(300.0f);
 
@@ -192,77 +192,22 @@ void Navigation::SubscribeToEvents()
 void Navigation::MoveCamera(float timeStep)
 {
     jackNode_ = scene_->GetChild("Jack");
-    jackNode_->SetPosition(jackNode_->GetPosition() * 1.001f);
+    // jackNode_->SetPosition(jackNode_->GetPosition() * 1.001f);
 
-    Input* input = GetSubsystem<Input>();
     UI* ui = GetSubsystem<UI>();
-    ui->GetCursor()->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
-    return;
-    /*
-    // Right mouse button controls mouse cursor visibility: hide when pressed
-    ui->GetCursor()->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
-
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
         return;
 
-    // Movement speed as world units per second
-    const float MOVE_SPEED = 20.0f;
-    // Mouse sensitivity as degrees per pixel
-    const float MOUSE_SENSITIVITY = 0.1f;
-
     // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
     // Only move the camera when the cursor is hidden
-    if (!ui->GetCursor()->IsVisible())
+    if (ui->GetCursor()->IsVisible())
     {
-        IntVector2 mouseMove = input->GetMouseMove();
-        yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
-        pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
-        pitch_ = Clamp(pitch_, -90.0f, 90.0f);
-
-        // Construct new orientation for the camera scene node from yaw and pitch. Roll is fixed to zero
-        cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
+        Input* input = GetSubsystem<Input>();
+        if (input->GetMouseButtonPress(MOUSEB_LEFT))
+            AddOrRemoveObject();
     }
 
-    // Read WASD keys and move the camera scene node to the corresponding direction if they are pressed
-    if (input->GetKeyDown('W'))
-        cameraNode_->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
-    if (input->GetKeyDown('S'))
-        cameraNode_->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
-    if (input->GetKeyDown('A'))
-        cameraNode_->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
-    if (input->GetKeyDown('D'))
-        cameraNode_->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
-
-    // Set destination or teleport with left mouse button
-    if (input->GetMouseButtonPress(MOUSEB_LEFT))
-        SetPathPoint();
-    // Add or remove objects with middle mouse button, then rebuild navigation mesh partially
-    if (input->GetMouseButtonPress(MOUSEB_MIDDLE) || input->GetKeyPress('O'))
-        AddOrRemoveObject();
-
-    // Toggle debug geometry with space
-    if (input->GetKeyPress(KEY_SPACE))
-        drawDebug_ = !drawDebug_;
-        */
-}
-
-void Navigation::SetPathPoint()
-{
-    return;
-    Vector3 hitPos;
-    Drawable* hitDrawable;
-
-    if (Raycast(250.0f, hitPos, hitDrawable))
-    {
-
-        if (GetSubsystem<Input>()->GetQualifierDown(QUAL_SHIFT))
-        {
-            // Teleport
-            jackNode_->LookAt(Vector3(hitPos.x_, jackNode_->GetPosition().y_, hitPos.z_), Vector3::UP);
-            jackNode_->SetPosition(hitPos);
-        }
-    }
 }
 
 void Navigation::AddOrRemoveObject()
@@ -276,7 +221,7 @@ void Navigation::AddOrRemoveObject()
         Node* hitNode = hitDrawable->GetNode();
         if (hitNode->GetName() == "Mushroom")
         {
-            hitNode->Remove();
+            thirdPersonCamera->SetTargetNode(hitNode);
         }
         else
         {
