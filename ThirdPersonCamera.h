@@ -47,12 +47,12 @@ public:
     virtual void Start();
     void Update(float timeStep);
     virtual void FixedUpdate(float timeStep);
-    
+
     void SetTargetNode(Node* target);
     void SetMinMaxDistance(float minDistance, float maxDistance);
 
     void HandleGlobalBlastEvent(StringHash eventType, VariantMap& eventData);
-    
+
     SharedPtr<Node> cameraNode_;
 
 private:
@@ -60,7 +60,7 @@ private:
     SharedPtr<Node> target_;
     SharedPtr<Node> shakeNode_;
     SharedPtr<Node> angleNode_;
-    
+
     SharedPtr<Camera> camera_;
 
     int wheel_;

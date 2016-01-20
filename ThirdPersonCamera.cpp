@@ -1,6 +1,5 @@
 #include "Common.h"
 #include "ThirdPersonCamera.h"
-#include <Urho3D/Scene/LogicComponent.h>
 
 
 ThirdPersonCamera::ThirdPersonCamera(Context* context) : LogicComponent(context)
@@ -44,9 +43,9 @@ void ThirdPersonCamera::Start()
     angleNode_->SetRotation(Quaternion(pitch_, Vector3(1,0,0)));
     GetNode()->SetPosition(Vector3::ZERO);
 
-    target_ = GetScene()->GetChild("playerNode", true);
+    target_ = GetScene()->GetChild("Jack", true);
 
-    SubscribeToEvent(StringHash("Blast"), HANDLER(ThirdPersonCamera, HandleGlobalBlastEvent));
+    // SubscribeToEvent(StringHash("Blast"), HANDLER(ThirdPersonCamera, HandleGlobalBlastEvent));
 
 
 }

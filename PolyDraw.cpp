@@ -51,8 +51,8 @@ Navigation::Navigation(Context* context) :
     Sample(context),
     drawDebug_(false)
 {
-    // UNCOMMENT TO EXPLODE
-    // ThirdPersonCamera::RegisterObject(context_);
+    // UNCOMMENT TO EXPLOD
+    ThirdPersonCamera::RegisterObject(context_);
 }
 
 void Navigation::Start()
