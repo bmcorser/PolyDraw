@@ -36,7 +36,7 @@
 
 class ThirdPersonCamera: public LogicComponent
 {
-    URHO3D_OBJECT(ThirdPersonCamera, Component);
+    URHO3D_OBJECT(ThirdPersonCamera, LogicComponent);
 public:
     /// Construct.
     ThirdPersonCamera(Context* context);

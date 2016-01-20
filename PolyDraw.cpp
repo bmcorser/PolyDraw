@@ -51,6 +51,8 @@ Navigation::Navigation(Context* context) :
     Sample(context),
     drawDebug_(false)
 {
+    // UNCOMMENT TO EXPLODE
+    // ThirdPersonCamera::RegisterObject(context_);
 }
 
 void Navigation::Start()
@@ -76,7 +78,6 @@ void Navigation::CreateScene()
     ResourceCache* cache = GetSubsystem<ResourceCache>();
 
     scene_ = new Scene(context_);
-    ThirdPersonCamera::RegisterObject(context_);
 
     // Create octree, use default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
     // Also create a DebugRenderer component so that we can draw debug geometry
