@@ -39,6 +39,7 @@
 #include <Urho3D/Core/Timer.h>
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/Resource/XMLFile.h>
+#include <Urho3D/IO/Log.h>
 
 Sample::Sample(Context* context) :
     Application(context),
@@ -59,6 +60,7 @@ void Sample::Setup()
     engineParameters_["FullScreen"]  = false;
     engineParameters_["Headless"]    = false;
     engineParameters_["Sound"]       = false;
+    // engineParameters_["LogLevel"]    = LOG_DEBUG;
 
     // Construct a search path to find the resource prefix with two entries:
     // The first entry is an empty path which will be substituted with program/bin directory -- this entry is for binary when it is still in build tree

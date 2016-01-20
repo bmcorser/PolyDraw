@@ -36,7 +36,9 @@
 
 class ThirdPersonCamera: public LogicComponent
 {
-    URHO3D_OBJECT(ThirdPersonCamera, LogicComponent);
+
+URHO3D_OBJECT(ThirdPersonCamera, LogicComponent);
+
 public:
     /// Construct.
     ThirdPersonCamera(Context* context);
@@ -58,7 +60,6 @@ public:
 private:
 
     SharedPtr<Node> target_;
-    SharedPtr<Node> shakeNode_;
     SharedPtr<Node> angleNode_;
 
     SharedPtr<Camera> camera_;
@@ -78,15 +79,8 @@ private:
     Vector3 newPos;
     Vector3 posVelocity;
 
-    float shakeMagnitude;
-    float shakeSpeed;
-    float shakeTime;
-    float shakeDamping;
-
-    void SetShake(float magnitude, float speed, float damping);
     void SpringFollow(float timeStep);
     void SpringPosition(float timeStep);
     float CameraTestObstacles(float followDistance, bool& hasObstacle);
-
 
 };

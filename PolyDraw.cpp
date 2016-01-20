@@ -121,8 +121,9 @@ void Navigation::CreateScene()
 
     // Create the camera. Limit far clip distance to match the fog
     cameraNode_ = scene_->CreateChild("Camera");
-    ThirdPersonCamera* camera = cameraNode_->CreateComponent<ThirdPersonCamera>();
-    // camera->SetFarClip(300.0f);
+    // ThirdPersonCamera* camera = cameraNode_->CreateComponent<ThirdPersonCamera>();
+    Camera* camera = cameraNode_->CreateComponent<Camera>();
+    camera->SetFarClip(300.0f);
 
     // Set an initial position for the camera scene node above the plane and looking down
     cameraNode_->SetPosition(Vector3(0.0f, 50.0f, 0.0f));

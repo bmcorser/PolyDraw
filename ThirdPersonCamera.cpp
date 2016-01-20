@@ -5,8 +5,7 @@
 ThirdPersonCamera::ThirdPersonCamera(Context* context) : LogicComponent(context)
 {
     // Only the physics update event is needed: unsubscribe from the rest for optimization
-    SetUpdateEventMask(USE_FIXEDUPDATE | USE_UPDATE);
-    
+    // SetUpdateEventMask(USE_FIXEDUPDATE | USE_UPDATE);
 }
 
 void ThirdPersonCamera::RegisterObject(Context* context)
@@ -28,14 +27,9 @@ void ThirdPersonCamera::Start()
     newPos = Vector3::ZERO;
     posVelocity = Vector3::ZERO;
 
-    shakeMagnitude = 0.0f;
-    shakeSpeed = 0.0f;
-    shakeTime = 0.0f;
-    shakeDamping = 0.0f;
-
-    shakeNode_ = GetNode()->GetChild("shakeNode", true);
-    angleNode_ = shakeNode_->GetChild("angleNode", true);
-    cameraNode_ = angleNode_->GetChild("cameraNode", true);
+    Node* root_ = GetScene()->GetChild("Camera");
+    angleNode_ = root_->CreateChild("angleNode");
+    cameraNode_ = angleNode_->CreateChild("cameraNode");
     camera_ = cameraNode_->GetComponent<Camera>();
 
     GetNode()->SetRotation(Quaternion(yaw_, Vector3(0,1,0)));
@@ -45,12 +39,9 @@ void ThirdPersonCamera::Start()
 
     target_ = GetScene()->GetChild("Jack", true);
 
-    // SubscribeToEvent(StringHash("Blast"), HANDLER(ThirdPersonCamera, HandleGlobalBlastEvent));
-
-
 }
 
-void ThirdPersonCamera::Update(float timeStep) 
+void ThirdPersonCamera::Update(float timeStep)
 {
     Input* input = GetSubsystem<Input>();
     const float MOVE_SPEED = 800.0f;
@@ -76,16 +67,6 @@ void ThirdPersonCamera::Update(float timeStep)
         follow_ = curFollow_;
         hasObstacle = false;
     }
-
-    const float xOffsetFactor = 3.0;
-    const float yOffsetFactor = 1.0;
-    shakeTime = shakeTime + timeStep * shakeSpeed;
-    float magnitudeForce = sin(shakeTime) * shakeMagnitude; 
-    Vector3 shakePos = Vector3(sin(shakeTime*xOffsetFactor)*magnitudeForce, cos(shakeTime*yOffsetFactor)*magnitudeForce, 0.0f);
-    shakeMagnitude -= shakeDamping * timeStep;
-    if (shakeMagnitude < 0.0f) shakeMagnitude = 0.0f;
-
-    shakeNode_->SetPosition(shakePos);
 
     SpringPosition(timeStep);
     GetNode()->SetPosition(pos);
@@ -126,11 +107,10 @@ float ThirdPersonCamera::CameraTestObstacles ( float followDistance, bool& hasOb
             if (result.distance_ >= 0) 
             {
                 hasObstacle = true;
-                return min(result.distance_, followDistance)-0.5f;
+                return Min(result.distance_, followDistance)-0.5f;
             }
         }
     }
-    
     return followDistance;
 }
 
@@ -154,13 +134,6 @@ void ThirdPersonCamera::SpringPosition(float timeStep)
     pos = pos + posVelocity * Vector3(timeStep, timeStep, timeStep);
 }
 
-void ThirdPersonCamera::SetShake(float magnitude, float speed, float damping)
-{
-    shakeMagnitude = magnitude;
-    shakeSpeed = speed;
-    shakeDamping = damping;
-}
-
 void ThirdPersonCamera::FixedUpdate(float timeStep)
 {
     newPos = target_->GetWorldPosition();
@@ -173,7 +146,6 @@ void ThirdPersonCamera::FixedUpdate(float timeStep)
     {
         if (isAlredyR == false) 
         {
-            SetShake(1.0f, 10.0f, 1.0f);
             isAlredyR = true;   
         }
     }
@@ -187,7 +159,6 @@ void ThirdPersonCamera::FixedUpdate(float timeStep)
     {
         if (isAlredyT == false) 
         {
-            SetShake(1.0f, 0.5f, 0.01f);
             isAlredyT = true;   
         }
     }
@@ -207,18 +178,4 @@ void ThirdPersonCamera::SetMinMaxDistance(float minDistance, float maxDistance)
 {
     minFollow_ = minDistance;
     maxFollow_ = maxDistance;
-}
-
-void ThirdPersonCamera::HandleGlobalBlastEvent(StringHash eventType, VariantMap& eventData)
-{
-    using namespace AnimationTrigger;
-
-    Vector3 BlastPos = eventData[P_DATA].GetVector3();
-
-    float distanceTo = (GetNode()->GetWorldPosition() - BlastPos).Length();
-
-    if (distanceTo < 30.0f) 
-    {
-        SetShake(0.7f, 5.0f, 2.0f); 
-    }
 }
