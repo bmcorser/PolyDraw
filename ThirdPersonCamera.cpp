@@ -27,14 +27,14 @@ void ThirdPersonCamera::Start()
     newPos = Vector3::ZERO;
     posVelocity = Vector3::ZERO;
 
-    Node* root_ = GetScene()->GetChild("Camera");
-    angleNode_ = root_->CreateChild("angleNode");
-    cameraNode_ = angleNode_->CreateChild("cameraNode");
-    camera_ = cameraNode_->GetComponent<Camera>();
+    Node* cameraRootNode = GetScene()->GetChild("CameraRoot");
+    cameraAngleNode = cameraRootNode->GetChild("CameraAngle");
+    cameraNode = cameraAngleNode->GetChild("Camera");
+    camera = cameraNode->GetComponent<Camera>();
 
     GetNode()->SetRotation(Quaternion(yaw_, Vector3(0,1,0)));
-    cameraNode_->SetPosition(Vector3(0,0, -follow_));
-    angleNode_->SetRotation(Quaternion(pitch_, Vector3(1,0,0)));
+    cameraNode->SetPosition(Vector3(0,0, -follow_));
+    cameraAngleNode->SetRotation(Quaternion(pitch_, Vector3(1,0,0)));
     GetNode()->SetPosition(Vector3::ZERO);
 
     target_ = GetScene()->GetChild("Jack", true);
@@ -43,6 +43,7 @@ void ThirdPersonCamera::Start()
 
 void ThirdPersonCamera::Update(float timeStep)
 {
+    URHO3D_LOGINFO(target_->GetPosition().ToString());
     Input* input = GetSubsystem<Input>();
     const float MOVE_SPEED = 800.0f;
     const float MOUSE_SENSITIVITY = 0.1f;
@@ -72,15 +73,15 @@ void ThirdPersonCamera::Update(float timeStep)
     GetNode()->SetPosition(pos);
 
     GetNode()->SetRotation(Quaternion(yaw_, Vector3::UP));
-    cameraNode_->SetPosition(Vector3(0.0f, 0.0f, -curFollow_));
-    angleNode_->SetRotation(Quaternion(pitch_, Vector3::RIGHT));
+    cameraNode->SetPosition(Vector3(0.0f, 0.0f, -curFollow_));
+    cameraAngleNode->SetRotation(Quaternion(pitch_, Vector3::RIGHT));
 }
 
 float ThirdPersonCamera::CameraTestObstacles ( float followDistance, bool& hasObstacle )
 {
     hasObstacle = false;
-    Quaternion cd = cameraNode_->GetWorldRotation();
-    Vector3 dir = cameraNode_->GetWorldPosition() - target_->GetWorldPosition();
+    Quaternion cd = cameraNode->GetWorldRotation();
+    Vector3 dir = cameraNode->GetWorldPosition() - target_->GetWorldPosition();
     dir.Normalize();
 
     //Ray fromTargetToCam = Ray(target_->GetWorldPosition(), cd*-Vector3::ONE );

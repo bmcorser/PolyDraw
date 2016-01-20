@@ -320,7 +320,7 @@ void Sample::HandleKeyDown(StringHash eventType, VariantMap& eventData)
 void Sample::HandleSceneUpdate(StringHash eventType, VariantMap& eventData)
 {
     // Move the camera by touch, if the camera node is initialized by descendant sample class
-    if (touchEnabled_ && cameraNode_)
+    if (touchEnabled_ && cameraNode)
     {
         Input* input = GetSubsystem<Input>();
         for (unsigned i = 0; i < input->GetNumTouches(); ++i)
@@ -330,7 +330,7 @@ void Sample::HandleSceneUpdate(StringHash eventType, VariantMap& eventData)
             {
                 if (state->delta_.x_ ||state->delta_.y_)
                 {
-                    Camera* camera = cameraNode_->GetComponent<Camera>();
+                    Camera* camera = cameraNode->GetComponent<Camera>();
                     if (!camera)
                         return;
 
@@ -339,7 +339,7 @@ void Sample::HandleSceneUpdate(StringHash eventType, VariantMap& eventData)
                     pitch_ += TOUCH_SENSITIVITY * camera->GetFov() / graphics->GetHeight() * state->delta_.y_;
 
                     // Construct new orientation for the camera scene node from yaw and pitch; roll is fixed to zero
-                    cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
+                    cameraNode->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
                 }
                 else
                 {

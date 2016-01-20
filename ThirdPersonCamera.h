@@ -55,14 +55,14 @@ public:
 
     void HandleGlobalBlastEvent(StringHash eventType, VariantMap& eventData);
 
-    SharedPtr<Node> cameraNode_;
+    SharedPtr<Node> cameraNode;
 
 private:
 
     SharedPtr<Node> target_;
-    SharedPtr<Node> angleNode_;
+    SharedPtr<Node> cameraAngleNode;
 
-    SharedPtr<Camera> camera_;
+    SharedPtr<Camera> camera;
 
     int wheel_;
     float lastCollisionTime;

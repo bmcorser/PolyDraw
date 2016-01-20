@@ -119,16 +119,21 @@ void Navigation::CreateScene()
     modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
     modelObject->SetCastShadows(true);
 
-    // Create the camera. Limit far clip distance to match the fog
-    cameraNode_ = scene_->CreateChild("Camera");
-    // ThirdPersonCamera* camera = cameraNode_->CreateComponent<ThirdPersonCamera>();
-    Camera* camera = cameraNode_->CreateComponent<Camera>();
-    camera->SetFarClip(300.0f);
+    // Create the tree for ThirdPersonCamera
+    Node* cameraRootNode = scene_->CreateChild("CameraRoot");
+    Node* cameraAngleNode = cameraRootNode->CreateChild("CameraAngle");
+    cameraNode = cameraAngleNode->CreateChild("Camera");
+    Camera* camera = cameraNode->CreateComponent<Camera>();
+    // coupled to code above, because Camera component must be a child
+    // could return a Camera* ?
+    ThirdPersonCamera* thirdPersonCamera = cameraRootNode->CreateComponent<ThirdPersonCamera>();
+    thirdPersonCamera->SetTargetNode(jackNode_);
+    // camera->SetFarClip(300.0f);
 
     // Set an initial position for the camera scene node above the plane and looking down
-    cameraNode_->SetPosition(Vector3(0.0f, 50.0f, 0.0f));
-    pitch_ = 80.0f;
-    cameraNode_->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
+    cameraNode->SetPosition(Vector3(0.0f, 50.0f, 0.0f));
+    // pitch_ = 80.0f;
+    // cameraNode->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
 }
 
 void Navigation::CreateUI()
@@ -170,7 +175,7 @@ void Navigation::SetupViewport()
     Renderer* renderer = GetSubsystem<Renderer>();
 
     // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
-    SharedPtr<Viewport> viewport(new Viewport(context_, scene_, cameraNode_->GetComponent<Camera>()));
+    SharedPtr<Viewport> viewport(new Viewport(context_, scene_, cameraNode->GetComponent<Camera>()));
     renderer->SetViewport(0, viewport);
 }
 
@@ -186,9 +191,15 @@ void Navigation::SubscribeToEvents()
 
 void Navigation::MoveCamera(float timeStep)
 {
-    // Right mouse button controls mouse cursor visibility: hide when pressed
-    UI* ui = GetSubsystem<UI>();
+    jackNode_ = scene_->GetChild("Jack");
+    jackNode_->SetPosition(jackNode_->GetPosition() * 1.001f);
+
     Input* input = GetSubsystem<Input>();
+    UI* ui = GetSubsystem<UI>();
+    ui->GetCursor()->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
+    return;
+    /*
+    // Right mouse button controls mouse cursor visibility: hide when pressed
     ui->GetCursor()->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
 
     // Do not move if the UI has a focused element (the console)
@@ -233,6 +244,7 @@ void Navigation::MoveCamera(float timeStep)
     // Toggle debug geometry with space
     if (input->GetKeyPress(KEY_SPACE))
         drawDebug_ = !drawDebug_;
+        */
 }
 
 void Navigation::SetPathPoint()
@@ -300,7 +312,7 @@ bool Navigation::Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawa
         return false;
 
     Graphics* graphics = GetSubsystem<Graphics>();
-    Camera* camera = cameraNode_->GetComponent<Camera>();
+    Camera* camera = cameraNode->GetComponent<Camera>();
     Ray cameraRay = camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
     // Pick only geometry objects, not eg. zones or lights, only get the first (closest) hit
     PODVector<RayQueryResult> results;

@@ -77,7 +77,7 @@ protected:
     /// Scene.
     SharedPtr<Scene> scene_;
     /// Camera scene node.
-    SharedPtr<Node> cameraNode_;
+    SharedPtr<Node> cameraNode;
     /// Camera yaw angle.
     float yaw_;
     /// Camera pitch angle.
