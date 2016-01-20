@@ -41,6 +41,7 @@
 #include <Urho3D/UI/UI.h>
 
 #include "PolyDraw.h"
+#include "ThirdPersonCamera.h"
 
 #include <Urho3D/DebugNew.h>
 
@@ -75,6 +76,7 @@ void Navigation::CreateScene()
     ResourceCache* cache = GetSubsystem<ResourceCache>();
 
     scene_ = new Scene(context_);
+    ThirdPersonCamera::RegisterObject(context_);
 
     // Create octree, use default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
     // Also create a DebugRenderer component so that we can draw debug geometry
@@ -118,8 +120,8 @@ void Navigation::CreateScene()
 
     // Create the camera. Limit far clip distance to match the fog
     cameraNode_ = scene_->CreateChild("Camera");
-    Camera* camera = cameraNode_->CreateComponent<Camera>();
-    camera->SetFarClip(300.0f);
+    ThirdPersonCamera* camera = cameraNode_->CreateComponent<ThirdPersonCamera>();
+    // camera->SetFarClip(300.0f);
 
     // Set an initial position for the camera scene node above the plane and looking down
     cameraNode_->SetPosition(Vector3(0.0f, 50.0f, 0.0f));

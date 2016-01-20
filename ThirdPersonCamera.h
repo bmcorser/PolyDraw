@@ -1,6 +1,6 @@
 #pragma once
 
-//#include <Urho3D/Scene/LogicComponent.h>
+#include <Urho3D/Scene/LogicComponent.h>
 //#include <Urho3D/Graphics/Geometry.h>
 //#include <Urho3D/Graphics/StaticModel.h>
 //#include <Urho3D/Graphics/Animation.h>
@@ -34,9 +34,9 @@
 //
 //using namespace Urho3D;
 
-class ThirdPersonCamera: public LogicComponent 
+class ThirdPersonCamera: public LogicComponent
 {
-	OBJECT(ThirdPersonCamera);
+	URHO3D_OBJECT(ThirdPersonCamera, Component);
 public:
 	/// Construct.
 	ThirdPersonCamera(Context* context);
