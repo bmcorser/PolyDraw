@@ -147,12 +147,11 @@ private:
     /// Handle the post-render update event.
     void HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData);
 
-    /// Last calculated path.
-    PODVector<Vector3> currentPath_;
     /// Path end position.
     Vector3 endPos_;
     /// Jack scene node.
     SharedPtr<Node> jackNode_;
+    SharedPtr<DebugRenderer> debugRenderer;
     /// Flag for drawing debug geometry.
     bool drawDebug_;
 };

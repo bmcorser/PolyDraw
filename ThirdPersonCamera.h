@@ -1,38 +1,6 @@
 #pragma once
 
 #include <Urho3D/Scene/LogicComponent.h>
-//#include <Urho3D/Graphics/Geometry.h>
-//#include <Urho3D/Graphics/StaticModel.h>
-//#include <Urho3D/Graphics/Animation.h>
-//#include <Urho3D/Scene/AnimationDefs.h>
-//#include <Urho3D/Graphics/AnimatedModel.h>
-//#include <Urho3D/Graphics/AnimationState.h>
-//#include <Urho3D/Graphics/AnimationController.h>
-//#include <Urho3D/Scene/ValueAnimation.h>
-//#include <Urho3D/Graphics/Material.h>
-//#include <Urho3D/Scene/SplinePath.h>
-//#include <Urho3D/Container/Ptr.h>
-//#include <Urho3D/Audio/Sound.h>
-//#include <Urho3D/Audio/SoundSource.h>
-//#include <Urho3D/Audio/SoundSource3D.h>
-//#include <Urho3D/Graphics/DrawableEvents.h>
-//#include <Urho3D/Physics/RigidBody.h>
-//#include <Urho3D/Graphics/Octree.h>
-//
-//namespace Urho3D
-//{
-//  class Node;
-//  class Scene;
-//  class Plane;
-//  class RigidBody;
-//  class LogicComponent;
-//  class Controls;
-//  class Drawable;
-//  class Octree;
-//
-//};
-//
-//using namespace Urho3D;
 
 class ThirdPersonCamera: public LogicComponent
 {
@@ -48,12 +16,10 @@ public:
 
     virtual void Start();
     void Update(float timeStep);
-    virtual void FixedUpdate(float timeStep);
+    virtual void FixedUpdate(float timeStep) {};
 
     void SetTargetNode(Node* target);
     void SetMinMaxDistance(float minDistance, float maxDistance);
-
-    void HandleGlobalBlastEvent(StringHash eventType, VariantMap& eventData);
 
     SharedPtr<Node> cameraNode;
 
@@ -63,6 +29,7 @@ private:
     SharedPtr<Node> cameraAngleNode;
 
     SharedPtr<Camera> camera;
+    SharedPtr<DebugRenderer> debugRenderer;
 
     int wheel_;
     float lastCollisionTime;

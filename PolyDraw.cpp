@@ -82,7 +82,7 @@ void Navigation::CreateScene()
     // Create octree, use default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
     // Also create a DebugRenderer component so that we can draw debug geometry
     scene_->CreateComponent<Octree>();
-    scene_->CreateComponent<DebugRenderer>();
+    debugRenderer = scene_->CreateComponent<DebugRenderer>();
 
     // Create scene node & StaticModel component for showing a static plane
     Node* planeNode = scene_->CreateChild("Plane");
@@ -114,9 +114,9 @@ void Navigation::CreateScene()
     // Create Jack node that will follow the path
     jackNode_ = scene_->CreateChild("Jack");
     jackNode_->SetPosition(Vector3(-5.0f, 0.0f, 20.0f));
-    AnimatedModel* modelObject = jackNode_->CreateComponent<AnimatedModel>();
+    StaticModel* modelObject = jackNode_->CreateComponent<StaticModel>();
     modelObject->SetModel(cache->GetResource<Model>("Models/Jack.mdl"));
-    modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
+    // modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
     modelObject->SetCastShadows(true);
 
     // Create the tree for ThirdPersonCamera
@@ -124,16 +124,21 @@ void Navigation::CreateScene()
     Node* cameraAngleNode = cameraRootNode->CreateChild("CameraAngle");
     cameraNode = cameraAngleNode->CreateChild("Camera");
     Camera* camera = cameraNode->CreateComponent<Camera>();
+
+    debugRenderer->SetView(camera);
+
     // coupled to code above, because Camera component must be a child
     // could return a Camera* ?
     thirdPersonCamera = cameraRootNode->CreateComponent<ThirdPersonCamera>();
     thirdPersonCamera->SetTargetNode(jackNode_);
     // camera->SetFarClip(300.0f);
 
-    // Set an initial position for the camera scene node above the plane and looking down
-    cameraNode->SetPosition(Vector3(0.0f, 50.0f, 0.0f));
     // pitch_ = 80.0f;
-    // cameraNode->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
+    debugCameraNode = scene_->CreateChild("DebugCamera");
+    Camera* debugCamera = debugCameraNode->CreateComponent<Camera>();
+    debugCamera->SetFarClip(300.0f);
+    debugCameraNode->SetPosition(Vector3(-40.0f, 50.0f, -20.0f));
+    debugCameraNode->SetRotation(Quaternion(40.0f, 60.0f, 0.0f));
 }
 
 void Navigation::CreateUI()
@@ -155,10 +160,9 @@ void Navigation::CreateUI()
     // Construct new Text object, set string to display and font to use
     Text* instructionText = ui->GetRoot()->CreateChild<Text>();
     instructionText->SetText(
-        "Use WASD keys to move, RMB to rotate view\n"
-        "LMB to set destination, SHIFT+LMB to teleport\n"
-        "MMB or O key to add or remove obstacles\n"
-        "Space to toggle debug geometry"
+        "Click on plane to create new targets\n"
+        "Click on targets to follow them\n"
+        "Hold CTRL to rotate around target\n"
     );
     instructionText->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 15);
     // The text has multiple rows. Center them in relation to each other
@@ -175,7 +179,7 @@ void Navigation::SetupViewport()
     Renderer* renderer = GetSubsystem<Renderer>();
 
     // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
-    SharedPtr<Viewport> viewport(new Viewport(context_, scene_, cameraNode->GetComponent<Camera>()));
+    SharedPtr<Viewport> viewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
     renderer->SetViewport(0, viewport);
 }
 
@@ -203,6 +207,20 @@ void Navigation::MoveCamera(float timeStep)
     // Only move the camera when the cursor is hidden
     if (ui->GetCursor()->IsVisible())
     {
+        // render ray for debugging
+        IntVector2 pos = ui->GetCursorPosition();
+        Graphics* graphics = GetSubsystem<Graphics>();
+        Camera* camera = cameraNode->GetComponent<Camera>();
+        Ray cameraRay = camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
+        PODVector<RayQueryResult> results;
+        RayOctreeQuery query(results, cameraRay, RAY_TRIANGLE, 250.0f, DRAWABLE_GEOMETRY);
+        scene_->GetComponent<Octree>()->RaycastSingle(query);
+        if (results.Size())
+        {
+            RayQueryResult& result = results[0];
+            debugRenderer->AddLine(result.position_, cameraRay.origin_, 1);
+        }
+
         Input* input = GetSubsystem<Input>();
         if (input->GetMouseButtonPress(MOUSEB_LEFT))
             AddOrRemoveObject();
@@ -219,7 +237,7 @@ void Navigation::AddOrRemoveObject()
     if (Raycast(250.0f, hitPos, hitDrawable))
     {
         Node* hitNode = hitDrawable->GetNode();
-        if (hitNode->GetName() == "Mushroom")
+        if (hitNode->GetName() == "Mushroom" || hitNode->GetName() == "Jack")
         {
             thirdPersonCamera->SetTargetNode(hitNode);
         }
@@ -239,8 +257,8 @@ Node* Navigation::CreateMushroom(const Vector3& pos)
     mushroomNode->SetRotation(Quaternion(0.0f, Random(360.0f), 0.0f));
     mushroomNode->SetScale(2.0f + Random(0.5f));
     StaticModel* mushroomObject = mushroomNode->CreateComponent<StaticModel>();
-    mushroomObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
-    // mushroomObject->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml"));
+    mushroomObject->SetModel(cache->GetResource<Model>("Models/Mushroom.mdl"));
+    mushroomObject->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml"));
     mushroomObject->SetCastShadows(true);
 
     return mushroomNode;
@@ -287,26 +305,14 @@ void Navigation::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 void Navigation::HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData)
 {
-    // If draw debug mode is enabled, draw navigation mesh debug geometry
-    if (drawDebug_)
-        scene_->GetComponent<NavigationMesh>()->DrawDebugGeometry(true);
-
-    if (currentPath_.Size())
+    jackNode_->GetComponent<StaticModel>()->DrawDebugGeometry(debugRenderer, true);
+    PODVector<Node*> children;
+    scene_->GetChildren(children);
+    if (children.Size() > 0)
     {
-        // Visualize the current calculated path
-        DebugRenderer* debug = scene_->GetComponent<DebugRenderer>();
-        debug->AddBoundingBox(BoundingBox(endPos_ - Vector3(0.1f, 0.1f, 0.1f), endPos_ + Vector3(0.1f, 0.1f, 0.1f)),
-            Color(1.0f, 1.0f, 1.0f));
-
-        // Draw the path with a small upward bias so that it does not clip into the surfaces
-        Vector3 bias(0.0f, 0.05f, 0.0f);
-        debug->AddLine(jackNode_->GetPosition() + bias, currentPath_[0] + bias, Color(1.0f, 1.0f, 1.0f));
-
-        if (currentPath_.Size() > 1)
-        {
-            for (unsigned i = 0; i < currentPath_.Size() - 1; ++i)
-                debug->AddLine(currentPath_[i] + bias, currentPath_[i + 1] + bias, Color(1.0f, 1.0f, 1.0f));
-        }
+        for (unsigned i = 0; i < children.Size(); ++i)
+            if(children[i]->GetComponent<StaticModel>())
+                children[i]->GetComponent<StaticModel>()->DrawDebugGeometry(debugRenderer, true);
     }
 }
 
