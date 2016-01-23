@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Urho3D/Scene/LogicComponent.h>
+#include <Urho3D/Scene/SmoothedTransform.h>
 
 class ThirdPersonCamera: public LogicComponent
 {
@@ -18,36 +19,30 @@ public:
     void Update(float timeStep);
     virtual void FixedUpdate(float timeStep) {};
 
-    void SetTargetNode(Node* target);
-    void SetMinMaxDistance(float minDistance, float maxDistance);
+    void SetTargetNode(Node* proposedTarget);
+    void SetRadiusLimits(float minDistance, float maxDistance);
 
-    SharedPtr<Node> cameraNode;
+    SharedPtr<Camera> camera;
 
 private:
 
-    SharedPtr<Node> target_;
-    SharedPtr<Node> cameraAngleNode;
+    SharedPtr<Node> containerNode;
+    SharedPtr<Node> yawNode;
+    SharedPtr<Node> pitchNode;
+    SharedPtr<Node> cameraNode;
+    SharedPtr<Node> balanceNode;
 
-    SharedPtr<Camera> camera;
     SharedPtr<DebugRenderer> debugRenderer;
+    SharedPtr<SmoothedTransform> lookTransform;
 
-    int wheel_;
-    float lastCollisionTime;
+    float minRadius;
+    float maxRadius;
+    float radius;
 
-    float minFollow_;
-    float maxFollow_;
+    float currentPitch;
+    float currentYaw;
 
-    float pitch_;
-    float yaw_;
-    float follow_;
-    float curFollow_;
-    float followVel_;
-    Vector3 pos;
-    Vector3 newPos;
-    Vector3 posVelocity;
-
-    void SpringFollow(float timeStep);
-    void SpringPosition(float timeStep);
-    float CameraTestObstacles(float followDistance, bool& hasObstacle);
+    Vector3 target;
+    Vector3 position;
 
 };

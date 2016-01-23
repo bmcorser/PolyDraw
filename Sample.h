@@ -81,7 +81,6 @@ protected:
     /// Camera scene node.
     SharedPtr<Node> cameraNode;
     SharedPtr<Node> debugCameraNode;
-    SharedPtr<ThirdPersonCamera> thirdPersonCamera;
     /// Camera yaw angle.
     float yaw_;
     /// Camera pitch angle.

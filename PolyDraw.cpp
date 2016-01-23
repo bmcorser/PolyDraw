@@ -119,19 +119,10 @@ void Navigation::CreateScene()
     // modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
     modelObject->SetCastShadows(true);
 
-    // Create the tree for ThirdPersonCamera
-    Node* cameraRootNode = scene_->CreateChild("CameraRoot");
-    Node* cameraAngleNode = cameraRootNode->CreateChild("CameraAngle");
-    cameraNode = cameraAngleNode->CreateChild("Camera");
-    Camera* camera = cameraNode->CreateComponent<Camera>();
 
-    debugRenderer->SetView(camera);
-
-    // coupled to code above, because Camera component must be a child
-    // could return a Camera* ?
-    thirdPersonCamera = cameraRootNode->CreateComponent<ThirdPersonCamera>();
-    thirdPersonCamera->SetTargetNode(jackNode_);
-    // camera->SetFarClip(300.0f);
+    orbitalCameraNode = scene_->CreateChild("CameraRoot");
+    orbitalCamera = orbitalCameraNode->CreateComponent<ThirdPersonCamera>();
+    orbitalCamera->SetTargetNode(jackNode_);
 
     // pitch_ = 80.0f;
     debugCameraNode = scene_->CreateChild("DebugCamera");
@@ -139,6 +130,13 @@ void Navigation::CreateScene()
     debugCamera->SetFarClip(300.0f);
     debugCameraNode->SetPosition(Vector3(-40.0f, 50.0f, -20.0f));
     debugCameraNode->SetRotation(Quaternion(40.0f, 60.0f, 0.0f));
+
+    Renderer* renderer = GetSubsystem<Renderer>();
+
+    // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
+    SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
+    SharedPtr<Viewport> viewport(new Viewport(context_, scene_, orbitalCamera->camera));
+    renderer->SetViewport(0, debugViewport);
 }
 
 void Navigation::CreateUI()
@@ -176,11 +174,6 @@ void Navigation::CreateUI()
 
 void Navigation::SetupViewport()
 {
-    Renderer* renderer = GetSubsystem<Renderer>();
-
-    // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
-    SharedPtr<Viewport> viewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
-    renderer->SetViewport(0, viewport);
 }
 
 void Navigation::SubscribeToEvents()
@@ -195,10 +188,14 @@ void Navigation::SubscribeToEvents()
 
 void Navigation::MoveCamera(float timeStep)
 {
-    jackNode_ = scene_->GetChild("Jack");
-    // jackNode_->SetPosition(jackNode_->GetPosition() * 1.001f);
-
+    Input* input = GetSubsystem<Input>();
     UI* ui = GetSubsystem<UI>();
+
+    const float MOVE_SPEED = 10.0f;
+    const float MOUSE_SENSITIVITY = 0.1f;
+
+    jackNode_ = scene_->GetChild("Jack");
+
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
         return;
@@ -207,11 +204,20 @@ void Navigation::MoveCamera(float timeStep)
     // Only move the camera when the cursor is hidden
     if (ui->GetCursor()->IsVisible())
     {
+        /*
+        */
         // render ray for debugging
         IntVector2 pos = ui->GetCursorPosition();
         Graphics* graphics = GetSubsystem<Graphics>();
-        Camera* camera = cameraNode->GetComponent<Camera>();
-        Ray cameraRay = camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
+
+        // debugging camera
+        IntVector2 mouseMove = input->GetMouseMove();
+        yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
+        pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
+        pitch_ = Clamp(pitch_, -90.0f, 90.0f);
+        debugCameraNode->SetRotation(Quaternion(pitch_, yaw_, 0.0f));
+
+        Ray cameraRay = orbitalCamera->camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
         PODVector<RayQueryResult> results;
         RayOctreeQuery query(results, cameraRay, RAY_TRIANGLE, 250.0f, DRAWABLE_GEOMETRY);
         scene_->GetComponent<Octree>()->RaycastSingle(query);
@@ -226,6 +232,16 @@ void Navigation::MoveCamera(float timeStep)
             AddOrRemoveObject();
     }
 
+    // Read WASD keys and move the camera scene node to the corresponding di
+    if (input->GetKeyDown('W'))
+        debugCameraNode->Translate(Vector3::FORWARD * MOVE_SPEED * timeStep);
+    if (input->GetKeyDown('S'))
+        debugCameraNode->Translate(Vector3::BACK * MOVE_SPEED * timeStep);
+    if (input->GetKeyDown('A'))
+        debugCameraNode->Translate(Vector3::LEFT * MOVE_SPEED * timeStep);
+    if (input->GetKeyDown('D'))
+        debugCameraNode->Translate(Vector3::RIGHT * MOVE_SPEED * timeStep);
+
 }
 
 void Navigation::AddOrRemoveObject()
@@ -239,7 +255,7 @@ void Navigation::AddOrRemoveObject()
         Node* hitNode = hitDrawable->GetNode();
         if (hitNode->GetName() == "Mushroom" || hitNode->GetName() == "Jack")
         {
-            thirdPersonCamera->SetTargetNode(hitNode);
+            orbitalCamera->SetTargetNode(hitNode); // send event
         }
         else
         {
@@ -275,8 +291,7 @@ bool Navigation::Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawa
         return false;
 
     Graphics* graphics = GetSubsystem<Graphics>();
-    Camera* camera = cameraNode->GetComponent<Camera>();
-    Ray cameraRay = camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
+    Ray cameraRay = orbitalCamera->camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
     // Pick only geometry objects, not eg. zones or lights, only get the first (closest) hit
     PODVector<RayQueryResult> results;
     RayOctreeQuery query(results, cameraRay, RAY_TRIANGLE, maxDistance, DRAWABLE_GEOMETRY);
@@ -295,6 +310,7 @@ bool Navigation::Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawa
 void Navigation::HandleUpdate(StringHash eventType, VariantMap& eventData)
 {
     using namespace Update;
+    // jackNode_->SetPosition(jackNode_->GetPosition() * 1.001f);
 
     // Take the frame time step, which is stored as a float
     float timeStep = eventData[P_TIMESTEP].GetFloat();

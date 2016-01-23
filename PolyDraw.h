@@ -51,6 +51,8 @@ public:
 
     /// Setup after engine initialization and before running the main loop.
     virtual void Start();
+    Node* orbitalCameraNode;
+    ThirdPersonCamera* orbitalCamera;
 
 protected:
     /// Return XML patch instructions for screen joystick layout for a specific sample app, if any.

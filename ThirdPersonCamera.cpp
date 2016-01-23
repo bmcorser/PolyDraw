@@ -1,5 +1,7 @@
 #include "Common.h"
 #include "ThirdPersonCamera.h"
+#include <Urho3D/DebugNew.h>
+
 
 
 ThirdPersonCamera::ThirdPersonCamera(Context* context) : LogicComponent(context)
@@ -15,32 +17,30 @@ void ThirdPersonCamera::RegisterObject(Context* context)
 
 void ThirdPersonCamera::Start()
 {
+    Node* node = GetNode();
     Scene* scene = GetScene();
     debugRenderer = scene->GetComponent<DebugRenderer>();
+    lookTransform = node->CreateComponent<SmoothedTransform>();
+    // target = GetNode()->GetPosition();
 
-    wheel_ = 0;
-    minFollow_ = 10;
-    maxFollow_ = 20;
-    pitch_ = 30;
-    yaw_ = 45;
-    follow_ = 50;
-    curFollow_ = follow_;
-    followVel_ = 0;
-    pos = Vector3::ZERO;
-    newPos = Vector3::ZERO;
-    posVelocity = Vector3::ZERO;
+    minRadius = 10;
+    maxRadius = 20;
+    currentPitch = 30;
+    currentYaw = 45;
+    radius = 50;
 
-    Node* cameraRootNode = scene->GetChild("CameraRoot", true);
-    cameraAngleNode = cameraRootNode->GetChild("CameraAngle", true);
-    cameraNode = cameraAngleNode->GetChild("Camera", true);
-    camera = cameraNode->GetComponent<Camera>();
+    containerNode = node->CreateChild("OrbitalCameraContainer");
+    yawNode = containerNode->CreateChild("OrbitalCameraYaw");
+        pitchNode = yawNode->CreateChild("OrbitalCameraPitch");
+            cameraNode = pitchNode->CreateChild("OrbitalCamera");
+                camera = cameraNode->CreateComponent<Camera>();  // public
+            balanceNode = pitchNode->CreateChild("OrbitalCameraBalance");
 
-    cameraRootNode->SetRotation(Quaternion(yaw_, Vector3(0,1,0)));
-    cameraNode->SetPosition(Vector3(0,0, -follow_));
-    cameraAngleNode->SetRotation(Quaternion(pitch_, Vector3(1,0,0)));
-    cameraRootNode->SetPosition(Vector3::ZERO);
-
-    target_ = scene->GetChild("Jack");
+    cameraNode->SetPosition(Vector3(0, 0, -radius));
+    cameraNode->SetRotation(Quaternion(0, 0, 0));
+    balanceNode->SetPosition(Vector3(0, 0, radius));
+    yawNode->SetRotation(Quaternion(0, currentYaw, 0));
+    pitchNode->SetRotation(Quaternion(currentPitch, 0, 0));
 
 }
 
@@ -48,6 +48,9 @@ void ThirdPersonCamera::Update(float timeStep)
 {
     UI* ui = GetSubsystem<UI>();
     camera->DrawDebugGeometry(debugRenderer, true);
+    Vector3 cameraPosition = cameraNode->GetPosition();
+    Vector3 targetPosition = containerNode->GetPosition();
+    debugRenderer->AddLine(cameraPosition, targetPosition, 1);
 
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
@@ -55,59 +58,46 @@ void ThirdPersonCamera::Update(float timeStep)
 
     Input* input = GetSubsystem<Input>();
 
-    newPos = target_->GetWorldPosition();
     const float MOUSE_SENSITIVITY = 0.1f;
 
-    ui->GetCursor()->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
+    Cursor* cursor = ui->GetCursor();
+    cursor->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
 
-    if (!ui->GetCursor()->IsVisible())
+    if (!ui->GetCursor()->IsVisible() && !lookTransform->IsInProgress())
     {
-        wheel_ = input->GetMouseMoveWheel();
         IntVector2 mouseMove = input->GetMouseMove();
-        yaw_ += MOUSE_SENSITIVITY * mouseMove.x_;
-        pitch_ += MOUSE_SENSITIVITY * mouseMove.y_;
-        pitch_ = Clamp(pitch_, -90.0f, 90.0f);
+        currentYaw += MOUSE_SENSITIVITY * mouseMove.x_;
+        currentPitch += MOUSE_SENSITIVITY * mouseMove.y_;
+        currentPitch = Clamp(currentPitch, -90.0f, 90.0f);
 
-        if (wheel_) follow_ -= wheel_ * timeStep * 100;
+        yawNode->SetRotation(Quaternion(0, currentYaw, 0));
+        pitchNode->SetRotation(Quaternion(currentPitch, 0, 0));
     }
 
-    if (follow_ < minFollow_) follow_ = minFollow_;
-    if (follow_ > maxFollow_) follow_ = maxFollow_;
+    /*
+    float wheel = input->GetMouseMoveWheel();
+    radius += wheel * k;
+    if (radius < minRadius) radius = minRadius;
+    if (radius > maxRadius) radius = maxRadius;
+    cameraNode->SetPosition(0, radius, 0);
+    balanceNode->SetPosition(0, -radius, 0);
+    */
 
-
-    SpringFollow(timeStep);
-    SpringPosition(timeStep);
-    GetNode()->SetPosition(pos);
-
-    GetNode()->SetRotation(Quaternion(yaw_, Vector3::UP));
-    cameraNode->SetPosition(Vector3(0.0f, 0.0f, -curFollow_));
-    cameraAngleNode->SetRotation(Quaternion(pitch_, Vector3::RIGHT));
 }
 
-void ThirdPersonCamera::SpringFollow(float timeStep) 
+void ThirdPersonCamera::SetTargetNode(Node* node) 
 {
-    float deltaFollow = follow_ - curFollow_;
-    float af = 28 * deltaFollow - 22 * followVel_;
-
-    followVel_ = followVel_ + timeStep * af;
-    curFollow_ = curFollow_ + timeStep * followVel_;
+    target = node->GetWorldPosition();
+    /*
+    Vector3 diff = target - pos;
+    Quaternion newRotation;
+    newRotation.FromLookRotation(diff, Vector3::UP);
+    lookTransform->SetTargetRotation(newRotation);
+    */
 }
 
-void ThirdPersonCamera::SpringPosition(float timeStep) 
+void ThirdPersonCamera::SetRadiusLimits(float min, float max)
 {
-    Vector3 d = newPos - pos;
-    Vector3 a = d * Vector3(8,8,8) - posVelocity * Vector3(5,5,5);
-    posVelocity = posVelocity + a * Vector3(timeStep, timeStep, timeStep);
-    pos = pos + posVelocity * Vector3(timeStep, timeStep, timeStep);
-}
-
-void ThirdPersonCamera::SetTargetNode(Node* target) 
-{
-    target_ = target;
-}
-
-void ThirdPersonCamera::SetMinMaxDistance(float minDistance, float maxDistance)
-{
-    minFollow_ = minDistance;
-    maxFollow_ = maxDistance;
+    minRadius = min;
+    maxRadius = max;
 }
