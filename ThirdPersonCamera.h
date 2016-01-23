@@ -32,8 +32,11 @@ private:
     SharedPtr<Node> cameraNode;
     SharedPtr<Node> balanceNode;
 
+    SharedPtr<SmoothedTransform> targetTransform;
+    SharedPtr<SmoothedTransform> pitchTransform;
+    SharedPtr<SmoothedTransform> yawTransform;
+
     SharedPtr<DebugRenderer> debugRenderer;
-    SharedPtr<SmoothedTransform> lookTransform;
 
     float minRadius;
     float maxRadius;

@@ -7,7 +7,7 @@
 ThirdPersonCamera::ThirdPersonCamera(Context* context) : LogicComponent(context)
 {
     // Only the physics update event is needed: unsubscribe from the rest for optimization
-    SetUpdateEventMask(USE_FIXEDUPDATE | USE_UPDATE);
+    // SetUpdateEventMask(USE_FIXEDUPDATE | USE_UPDATE);
 }
 
 void ThirdPersonCamera::RegisterObject(Context* context)
@@ -20,8 +20,6 @@ void ThirdPersonCamera::Start()
     Node* node = GetNode();
     Scene* scene = GetScene();
     debugRenderer = scene->GetComponent<DebugRenderer>();
-    lookTransform = node->CreateComponent<SmoothedTransform>();
-    // target = GetNode()->GetPosition();
 
     minRadius = 10;
     maxRadius = 20;
@@ -30,22 +28,31 @@ void ThirdPersonCamera::Start()
     radius = 50;
 
     containerNode = node->CreateChild("OrbitalCameraContainer");
-    yawNode = containerNode->CreateChild("OrbitalCameraYaw");
-        pitchNode = yawNode->CreateChild("OrbitalCameraPitch");
-            cameraNode = pitchNode->CreateChild("OrbitalCamera");
-                camera = cameraNode->CreateComponent<Camera>();  // public
-            balanceNode = pitchNode->CreateChild("OrbitalCameraBalance");
+    targetTransform = containerNode->CreateComponent<SmoothedTransform>();
 
-    cameraNode->SetPosition(Vector3(0, 0, -radius));
-    cameraNode->SetRotation(Quaternion(0, 0, 0));
-    balanceNode->SetPosition(Vector3(0, 0, radius));
-    yawNode->SetRotation(Quaternion(0, currentYaw, 0));
-    pitchNode->SetRotation(Quaternion(currentPitch, 0, 0));
+        yawNode = containerNode->CreateChild("OrbitalCameraYaw");
+        yawNode->SetRotation(Quaternion(0, currentYaw, 0));
+        yawTransform = yawNode->CreateComponent<SmoothedTransform>();
+
+            pitchNode = yawNode->CreateChild("OrbitalCameraPitch");
+            pitchNode->SetRotation(Quaternion(currentPitch, 0, 0));
+            pitchTransform = pitchNode->CreateComponent<SmoothedTransform>();
+
+                cameraNode = pitchNode->CreateChild("OrbitalCamera");
+                cameraNode->SetPosition(Vector3(0, 0, -radius));
+                cameraNode->SetRotation(Quaternion(0, 0, 0));
+
+                    camera = cameraNode->CreateComponent<Camera>();  // public
+
+                balanceNode = pitchNode->CreateChild("OrbitalCameraBalance");
+                balanceNode->SetPosition(Vector3(0, 0, radius));
+
 
 }
 
 void ThirdPersonCamera::Update(float timeStep)
 {
+    targetTransform->Update(0.1, 0.1);
     UI* ui = GetSubsystem<UI>();
     camera->DrawDebugGeometry(debugRenderer, true);
     Vector3 cameraPosition = cameraNode->GetPosition();
@@ -63,7 +70,7 @@ void ThirdPersonCamera::Update(float timeStep)
     Cursor* cursor = ui->GetCursor();
     cursor->SetVisible(!input->GetQualifierDown(QUAL_CTRL));
 
-    if (!ui->GetCursor()->IsVisible() && !lookTransform->IsInProgress())
+    if (!ui->GetCursor()->IsVisible() && !targetTransform->IsInProgress())
     {
         IntVector2 mouseMove = input->GetMouseMove();
         currentYaw += MOUSE_SENSITIVITY * mouseMove.x_;
@@ -87,12 +94,14 @@ void ThirdPersonCamera::Update(float timeStep)
 
 void ThirdPersonCamera::SetTargetNode(Node* node) 
 {
-    target = node->GetWorldPosition();
+    URHO3D_LOGINFO("delta: " + (target - node->GetPosition()).ToString());
+    target = node->GetPosition();
+    targetTransform->SetTargetPosition(target);
     /*
     Vector3 diff = target - pos;
     Quaternion newRotation;
     newRotation.FromLookRotation(diff, Vector3::UP);
-    lookTransform->SetTargetRotation(newRotation);
+    targetTransform->SetTargetRotation(newRotation);
     */
 }
 

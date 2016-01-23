@@ -136,7 +136,7 @@ void Navigation::CreateScene()
     // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
     SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
     SharedPtr<Viewport> viewport(new Viewport(context_, scene_, orbitalCamera->camera));
-    renderer->SetViewport(0, debugViewport);
+    renderer->SetViewport(0, viewport);
 }
 
 void Navigation::CreateUI()
@@ -195,6 +195,8 @@ void Navigation::MoveCamera(float timeStep)
     const float MOUSE_SENSITIVITY = 0.1f;
 
     jackNode_ = scene_->GetChild("Jack");
+    scene_->SetSmoothingConstant(0.001f);
+    scene_->SetSnapThreshold(0.001f);
 
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
