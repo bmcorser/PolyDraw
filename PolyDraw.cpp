@@ -78,6 +78,10 @@ void Navigation::CreateScene()
     ResourceCache* cache = GetSubsystem<ResourceCache>();
 
     scene_ = new Scene(context_);
+    scene_->SetSmoothingConstant(1.0f);
+    scene_->SetSnapThreshold(1.0f);
+    /*
+    */
 
     // Create octree, use default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
     // Also create a DebugRenderer component so that we can draw debug geometry
@@ -116,7 +120,7 @@ void Navigation::CreateScene()
     jackNode_->SetPosition(Vector3(-5.0f, 0.0f, 20.0f));
     StaticModel* modelObject = jackNode_->CreateComponent<StaticModel>();
     modelObject->SetModel(cache->GetResource<Model>("Models/Jack.mdl"));
-    // modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
+    modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
     modelObject->SetCastShadows(true);
 
 
@@ -124,7 +128,6 @@ void Navigation::CreateScene()
     orbitalCamera = orbitalCameraNode->CreateComponent<ThirdPersonCamera>();
     orbitalCamera->SetTargetNode(jackNode_);
 
-    // pitch_ = 80.0f;
     debugCameraNode = scene_->CreateChild("DebugCamera");
     Camera* debugCamera = debugCameraNode->CreateComponent<Camera>();
     debugCamera->SetFarClip(300.0f);
@@ -137,6 +140,8 @@ void Navigation::CreateScene()
     SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
     SharedPtr<Viewport> viewport(new Viewport(context_, scene_, orbitalCamera->camera));
     renderer->SetViewport(0, viewport);
+
+    cameraTransform = scene_->CreateComponent<SmoothedTransform>();
 }
 
 void Navigation::CreateUI()
@@ -195,8 +200,6 @@ void Navigation::MoveCamera(float timeStep)
     const float MOUSE_SENSITIVITY = 0.1f;
 
     jackNode_ = scene_->GetChild("Jack");
-    scene_->SetSmoothingConstant(0.001f);
-    scene_->SetSnapThreshold(0.001f);
 
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
@@ -206,8 +209,6 @@ void Navigation::MoveCamera(float timeStep)
     // Only move the camera when the cursor is hidden
     if (ui->GetCursor()->IsVisible())
     {
-        /*
-        */
         // render ray for debugging
         IntVector2 pos = ui->GetCursorPosition();
         Graphics* graphics = GetSubsystem<Graphics>();

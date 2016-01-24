@@ -154,6 +154,7 @@ private:
     /// Jack scene node.
     SharedPtr<Node> jackNode_;
     SharedPtr<DebugRenderer> debugRenderer;
+    SharedPtr<SmoothedTransform> cameraTransform;
     /// Flag for drawing debug geometry.
     bool drawDebug_;
 };

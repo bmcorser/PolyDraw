@@ -46,6 +46,6 @@ private:
     float currentYaw;
 
     Vector3 target;
-    Vector3 position;
+    Vector3 positionVelocity;
 
 };

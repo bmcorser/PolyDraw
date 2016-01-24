@@ -7,7 +7,7 @@
 ThirdPersonCamera::ThirdPersonCamera(Context* context) : LogicComponent(context)
 {
     // Only the physics update event is needed: unsubscribe from the rest for optimization
-    // SetUpdateEventMask(USE_FIXEDUPDATE | USE_UPDATE);
+    SetUpdateEventMask(USE_FIXEDUPDATE | USE_UPDATE);
 }
 
 void ThirdPersonCamera::RegisterObject(Context* context)
@@ -26,6 +26,8 @@ void ThirdPersonCamera::Start()
     currentPitch = 30;
     currentYaw = 45;
     radius = 50;
+    target = Vector3::ZERO;
+    positionVelocity = Vector3::ZERO;
 
     containerNode = node->CreateChild("OrbitalCameraContainer");
     targetTransform = containerNode->CreateComponent<SmoothedTransform>();
@@ -52,12 +54,13 @@ void ThirdPersonCamera::Start()
 
 void ThirdPersonCamera::Update(float timeStep)
 {
-    targetTransform->Update(0.1, 0.1);
     UI* ui = GetSubsystem<UI>();
+    /*
     camera->DrawDebugGeometry(debugRenderer, true);
     Vector3 cameraPosition = cameraNode->GetPosition();
     Vector3 targetPosition = containerNode->GetPosition();
     debugRenderer->AddLine(cameraPosition, targetPosition, 1);
+    */
 
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
@@ -81,6 +84,19 @@ void ThirdPersonCamera::Update(float timeStep)
         pitchNode->SetRotation(Quaternion(currentPitch, 0, 0));
     }
 
+
+    Vector3 position = containerNode->GetPosition();
+
+    containerNode->SetPosition(position.Lerp(target, timeStep));
+
+    Vector3 diff = target - position;
+    if (diff.Length() > .7f) {
+        Quaternion targetAngle = Quaternion(Quaternion(target, position).YawAngle(), Vector3::DOWN);
+        Quaternion slerpedTargetAngle = yawNode->GetRotation().Slerp(targetAngle, timeStep);
+        yawNode->SetRotation(slerpedTargetAngle);
+        currentYaw = slerpedTargetAngle.YawAngle();
+    }
+
     /*
     float wheel = input->GetMouseMoveWheel();
     radius += wheel * k;
@@ -94,14 +110,11 @@ void ThirdPersonCamera::Update(float timeStep)
 
 void ThirdPersonCamera::SetTargetNode(Node* node) 
 {
-    URHO3D_LOGINFO("delta: " + (target - node->GetPosition()).ToString());
-    target = node->GetPosition();
-    targetTransform->SetTargetPosition(target);
+    target = node->GetWorldPosition();
     /*
-    Vector3 diff = target - pos;
-    Quaternion newRotation;
-    newRotation.FromLookRotation(diff, Vector3::UP);
-    targetTransform->SetTargetRotation(newRotation);
+    targetTransform->SetTargetWorldPosition(target);
+    URHO3D_LOGINFO("delta: " + diff.ToString());
+    Vector3 diff = target - node->GetPosition();
     */
 }
 
