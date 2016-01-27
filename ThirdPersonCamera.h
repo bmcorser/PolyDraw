@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <iostream>
 #include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Scene/SmoothedTransform.h>
 
@@ -44,8 +46,11 @@ private:
 
     float currentPitch;
     float currentYaw;
+    float currentWorldYaw;
+    float targetYaw;
 
     Vector3 target;
-    Vector3 positionVelocity;
+    Vector3 centre;
+    Vector3 cameraPosition;
 
 };

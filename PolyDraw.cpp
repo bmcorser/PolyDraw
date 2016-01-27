@@ -88,6 +88,8 @@ void Navigation::CreateScene()
     scene_->CreateComponent<Octree>();
     debugRenderer = scene_->CreateComponent<DebugRenderer>();
 
+    /*
+    */
     // Create scene node & StaticModel component for showing a static plane
     Node* planeNode = scene_->CreateChild("Plane");
     planeNode->SetScale(Vector3(100.0f, 1.0f, 100.0f));
@@ -129,7 +131,7 @@ void Navigation::CreateScene()
     orbitalCamera->SetTargetNode(jackNode_);
 
     debugCameraNode = scene_->CreateChild("DebugCamera");
-    Camera* debugCamera = debugCameraNode->CreateComponent<Camera>();
+    debugCamera = debugCameraNode->CreateComponent<Camera>();
     debugCamera->SetFarClip(300.0f);
     debugCameraNode->SetPosition(Vector3(-40.0f, 50.0f, -20.0f));
     debugCameraNode->SetRotation(Quaternion(40.0f, 60.0f, 0.0f));
@@ -139,7 +141,7 @@ void Navigation::CreateScene()
     // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
     SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
     SharedPtr<Viewport> viewport(new Viewport(context_, scene_, orbitalCamera->camera));
-    renderer->SetViewport(0, viewport);
+    renderer->SetViewport(0, debugViewport);
 
     cameraTransform = scene_->CreateComponent<SmoothedTransform>();
 }
@@ -160,6 +162,7 @@ void Navigation::CreateUI()
     Graphics* graphics = GetSubsystem<Graphics>();
     cursor->SetPosition(graphics->GetWidth() / 2, graphics->GetHeight() / 2);
 
+    /*
     // Construct new Text object, set string to display and font to use
     Text* instructionText = ui->GetRoot()->CreateChild<Text>();
     instructionText->SetText(
@@ -175,6 +178,7 @@ void Navigation::CreateUI()
     instructionText->SetHorizontalAlignment(HA_CENTER);
     instructionText->SetVerticalAlignment(VA_CENTER);
     instructionText->SetPosition(0, ui->GetRoot()->GetHeight() / 4);
+    */
 }
 
 void Navigation::SetupViewport()
@@ -196,7 +200,7 @@ void Navigation::MoveCamera(float timeStep)
     Input* input = GetSubsystem<Input>();
     UI* ui = GetSubsystem<UI>();
 
-    const float MOVE_SPEED = 10.0f;
+    const float MOVE_SPEED = 70.0f;
     const float MOUSE_SENSITIVITY = 0.1f;
 
     jackNode_ = scene_->GetChild("Jack");
@@ -207,7 +211,7 @@ void Navigation::MoveCamera(float timeStep)
 
     // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
     // Only move the camera when the cursor is hidden
-    if (ui->GetCursor()->IsVisible())
+    if (!ui->GetCursor()->IsVisible())
     {
         // render ray for debugging
         IntVector2 pos = ui->GetCursorPosition();
@@ -227,10 +231,12 @@ void Navigation::MoveCamera(float timeStep)
         if (results.Size())
         {
             RayQueryResult& result = results[0];
-            debugRenderer->AddLine(result.position_, cameraRay.origin_, 1);
+            // debugRenderer->AddLine(result.position_, cameraRay.origin_, 1);
         }
 
-        Input* input = GetSubsystem<Input>();
+    }
+    if (ui->GetCursor()->IsVisible())
+    {
         if (input->GetMouseButtonPress(MOUSEB_LEFT))
             AddOrRemoveObject();
     }
@@ -294,7 +300,7 @@ bool Navigation::Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawa
         return false;
 
     Graphics* graphics = GetSubsystem<Graphics>();
-    Ray cameraRay = orbitalCamera->camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
+    Ray cameraRay = debugCamera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
     // Pick only geometry objects, not eg. zones or lights, only get the first (closest) hit
     PODVector<RayQueryResult> results;
     RayOctreeQuery query(results, cameraRay, RAY_TRIANGLE, maxDistance, DRAWABLE_GEOMETRY);
