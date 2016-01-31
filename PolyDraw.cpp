@@ -1,25 +1,3 @@
-//
-// Copyright (c) 2008-2015 the Urho3D project.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
-
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Graphics/AnimatedModel.h>
@@ -88,15 +66,6 @@ void Navigation::CreateScene()
     scene_->CreateComponent<Octree>();
     debugRenderer = scene_->CreateComponent<DebugRenderer>();
 
-    /*
-    */
-    // Create scene node & StaticModel component for showing a static plane
-    Node* planeNode = scene_->CreateChild("Plane");
-    planeNode->SetScale(Vector3(100.0f, 1.0f, 100.0f));
-    StaticModel* planeObject = planeNode->CreateComponent<StaticModel>();
-    planeObject->SetModel(cache->GetResource<Model>("Models/Plane.mdl"));
-    planeObject->SetMaterial(cache->GetResource<Material>("Materials/StoneTiled.xml"));
-
     // Create a Zone component for ambient lighting & fog control
     Node* zoneNode = scene_->CreateChild("Zone");
     Zone* zone = zoneNode->CreateComponent<Zone>();
@@ -116,19 +85,34 @@ void Navigation::CreateScene()
     // Set cascade splits at 10, 50 and 200 world units, fade shadows out at 80% of maximum shadow distance
     light->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 
-
-    // Create Jack node that will follow the path
-    jackNode_ = scene_->CreateChild("Jack");
-    jackNode_->SetPosition(Vector3(-5.0f, 0.0f, 20.0f));
-    StaticModel* modelObject = jackNode_->CreateComponent<StaticModel>();
-    modelObject->SetModel(cache->GetResource<Model>("Models/Jack.mdl"));
-    modelObject->SetMaterial(cache->GetResource<Material>("Materials/Jack.xml"));
-    modelObject->SetCastShadows(true);
-
+    // Create bodies
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<> distr(1000, 100000);
+    Vector3 pos;
+    Vector<Vector3> created;
+    bool tooClose;
+    int i = 0;
+    while (i < 7) {
+        pos = Vector3(float(distr(eng)), float(distr(eng)), float(distr(eng)));
+        pos /= 1000;
+        URHO3D_LOGINFO(pos.ToString());
+        tooClose = false;
+        for (int j=0; j < created.Size(); ++j) {
+            if ((created[j] - pos).Length() < 10) {
+                tooClose = true;
+            }
+        }
+        if (tooClose == true)
+            continue;
+        created.Push(pos);
+        CreateMushroom(pos);
+        ++i;
+    }
 
     orbitalCameraNode = scene_->CreateChild("CameraRoot");
     orbitalCamera = orbitalCameraNode->CreateComponent<ThirdPersonCamera>();
-    orbitalCamera->SetTargetNode(jackNode_);
+    // orbitalCamera->SetTargetNode(jackNode_);
 
     debugCameraNode = scene_->CreateChild("DebugCamera");
     debugCamera = debugCameraNode->CreateComponent<Camera>();
@@ -141,9 +125,7 @@ void Navigation::CreateScene()
     // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
     SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
     SharedPtr<Viewport> viewport(new Viewport(context_, scene_, orbitalCamera->camera));
-    renderer->SetViewport(0, debugViewport);
-
-    cameraTransform = scene_->CreateComponent<SmoothedTransform>();
+    renderer->SetViewport(0, viewport);
 }
 
 void Navigation::CreateUI()
@@ -202,8 +184,6 @@ void Navigation::MoveCamera(float timeStep)
 
     const float MOVE_SPEED = 70.0f;
     const float MOUSE_SENSITIVITY = 0.1f;
-
-    jackNode_ = scene_->GetChild("Jack");
 
     // Do not move if the UI has a focused element (the console)
     if (ui->GetFocusElement())
@@ -280,10 +260,10 @@ Node* Navigation::CreateMushroom(const Vector3& pos)
     Node* mushroomNode = scene_->CreateChild("Mushroom");
     mushroomNode->SetPosition(pos);
     mushroomNode->SetRotation(Quaternion(0.0f, Random(360.0f), 0.0f));
-    mushroomNode->SetScale(2.0f + Random(0.5f));
+    mushroomNode->SetScale(2.0f + Random(15));
     StaticModel* mushroomObject = mushroomNode->CreateComponent<StaticModel>();
-    mushroomObject->SetModel(cache->GetResource<Model>("Models/Mushroom.mdl"));
-    mushroomObject->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml"));
+    mushroomObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
+    // mushroomObject->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml"));
     mushroomObject->SetCastShadows(true);
 
     return mushroomNode;
@@ -300,7 +280,7 @@ bool Navigation::Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawa
         return false;
 
     Graphics* graphics = GetSubsystem<Graphics>();
-    Ray cameraRay = debugCamera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
+    Ray cameraRay = orbitalCamera->camera->GetScreenRay((float)pos.x_ / graphics->GetWidth(), (float)pos.y_ / graphics->GetHeight());
     // Pick only geometry objects, not eg. zones or lights, only get the first (closest) hit
     PODVector<RayQueryResult> results;
     RayOctreeQuery query(results, cameraRay, RAY_TRIANGLE, maxDistance, DRAWABLE_GEOMETRY);
@@ -319,7 +299,6 @@ bool Navigation::Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawa
 void Navigation::HandleUpdate(StringHash eventType, VariantMap& eventData)
 {
     using namespace Update;
-    // jackNode_->SetPosition(jackNode_->GetPosition() * 1.001f);
 
     // Take the frame time step, which is stored as a float
     float timeStep = eventData[P_TIMESTEP].GetFloat();
@@ -330,7 +309,6 @@ void Navigation::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 void Navigation::HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData)
 {
-    jackNode_->GetComponent<StaticModel>()->DrawDebugGeometry(debugRenderer, true);
     PODVector<Node*> children;
     scene_->GetChildren(children);
     if (children.Size() > 0)
