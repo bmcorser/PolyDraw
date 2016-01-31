@@ -25,6 +25,7 @@ public:
     void SetRadiusLimits(float minDistance, float maxDistance);
 
     SharedPtr<Camera> camera;
+    Vector3 target;
 
 private:
 
@@ -49,7 +50,6 @@ private:
     float currentWorldYaw;
     float targetYaw;
 
-    Vector3 target;
     Vector3 centre;
     Vector3 cameraPosition;
 

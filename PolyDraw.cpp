@@ -85,18 +85,28 @@ void Navigation::CreateScene()
     // Set cascade splits at 10, 50 and 200 world units, fade shadows out at 80% of maximum shadow distance
     light->SetShadowCascade(CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 
+    orbitalCameraNode = scene_->CreateChild("CameraRoot");
+    orbitalCamera = orbitalCameraNode->CreateComponent<ThirdPersonCamera>();
+
     // Create bodies
     std::random_device rd;
     std::mt19937 eng(rd());
     std::uniform_int_distribution<> distr(1000, 100000);
     Vector3 pos;
     Vector<Vector3> created;
+
+    // initial body (for camera target)
+    pos = Vector3(float(distr(eng)), float(distr(eng)), float(distr(eng)));
+    pos /= 1000;
+    created.Push(pos);
+    orbitalCamera->SetTargetNode(CreateMushroom(pos));
+
+    // make a bunch of spread out bodies
     bool tooClose;
     int i = 0;
     while (i < 7) {
         pos = Vector3(float(distr(eng)), float(distr(eng)), float(distr(eng)));
         pos /= 1000;
-        URHO3D_LOGINFO(pos.ToString());
         tooClose = false;
         for (int j=0; j < created.Size(); ++j) {
             if ((created[j] - pos).Length() < 10) {
@@ -110,10 +120,6 @@ void Navigation::CreateScene()
         ++i;
     }
 
-    orbitalCameraNode = scene_->CreateChild("CameraRoot");
-    orbitalCamera = orbitalCameraNode->CreateComponent<ThirdPersonCamera>();
-    // orbitalCamera->SetTargetNode(jackNode_);
-
     debugCameraNode = scene_->CreateChild("DebugCamera");
     debugCamera = debugCameraNode->CreateComponent<Camera>();
     debugCamera->SetFarClip(300.0f);
@@ -123,8 +129,10 @@ void Navigation::CreateScene()
     Renderer* renderer = GetSubsystem<Renderer>();
 
     // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
-    SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
+    /*
+    */
     SharedPtr<Viewport> viewport(new Viewport(context_, scene_, orbitalCamera->camera));
+    SharedPtr<Viewport> debugViewport(new Viewport(context_, scene_, debugCameraNode->GetComponent<Camera>()));
     renderer->SetViewport(0, viewport);
 }
 
@@ -218,7 +226,11 @@ void Navigation::MoveCamera(float timeStep)
     if (ui->GetCursor()->IsVisible())
     {
         if (input->GetMouseButtonPress(MOUSEB_LEFT))
-            AddOrRemoveObject();
+            if(input->GetQualifierDown(QUAL_SHIFT)) {
+                ConnectBodies();
+            } else {
+                AddOrRemoveObject();
+            }
     }
 
     // Read WASD keys and move the camera scene node to the corresponding di
@@ -233,6 +245,22 @@ void Navigation::MoveCamera(float timeStep)
 
 }
 
+void Navigation::ConnectBodies()
+{
+    // Raycast and check if we hit a mushroom node. If yes, remove it, if no, create a new one
+    Vector3 hitPos;
+    Drawable* hitDrawable;
+
+    if (Raycast(250.0f, hitPos, hitDrawable))
+    {
+        Node* hitNode = hitDrawable->GetNode();
+        if (hitNode->GetName() == "Mushroom")
+        {
+            connections_A.Push(orbitalCamera->target);
+            connections_B.Push(hitNode->GetPosition());
+        }
+    }
+}
 void Navigation::AddOrRemoveObject()
 {
     // Raycast and check if we hit a mushroom node. If yes, remove it, if no, create a new one
@@ -242,7 +270,7 @@ void Navigation::AddOrRemoveObject()
     if (Raycast(250.0f, hitPos, hitDrawable))
     {
         Node* hitNode = hitDrawable->GetNode();
-        if (hitNode->GetName() == "Mushroom" || hitNode->GetName() == "Jack")
+        if (hitNode->GetName() == "Mushroom")
         {
             orbitalCamera->SetTargetNode(hitNode); // send event
         }
@@ -309,6 +337,7 @@ void Navigation::HandleUpdate(StringHash eventType, VariantMap& eventData)
 
 void Navigation::HandlePostRenderUpdate(StringHash eventType, VariantMap& eventData)
 {
+    /*
     PODVector<Node*> children;
     scene_->GetChildren(children);
     if (children.Size() > 0)
@@ -316,6 +345,13 @@ void Navigation::HandlePostRenderUpdate(StringHash eventType, VariantMap& eventD
         for (unsigned i = 0; i < children.Size(); ++i)
             if(children[i]->GetComponent<StaticModel>())
                 children[i]->GetComponent<StaticModel>()->DrawDebugGeometry(debugRenderer, true);
+    }
+    */
+    if (connections_A.Size() > 0)
+    {
+        for (int i = 0; i < connections_A.Size(); ++i) {
+            debugRenderer->AddLine(connections_A[i], connections_B[i], Color::MAGENTA);
+        }
     }
 }
 

@@ -121,6 +121,7 @@ private:
     void MoveCamera(float timeStep);
     /// Add or remove object.
     void AddOrRemoveObject();
+    void ConnectBodies();
     /// Create a mushroom object at position.
     Node* CreateMushroom(const Vector3& pos);
     /// Utility function to raycast to the cursor position. Return true if hit
@@ -134,6 +135,8 @@ private:
     Vector3 endPos_;
     SharedPtr<DebugRenderer> debugRenderer;
     SharedPtr<Camera> debugCamera;
+    Vector<Vector3> connections_A;
+    Vector<Vector3> connections_B;
     /// Flag for drawing debug geometry.
     bool drawDebug_;
 };
