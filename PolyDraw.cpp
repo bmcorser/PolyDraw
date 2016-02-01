@@ -33,6 +33,7 @@ Navigation::Navigation(Context* context) :
     ThirdPersonCamera::RegisterObject(context_);
 }
 
+
 void Navigation::Start()
 {
     // Execute base class startup
@@ -88,24 +89,44 @@ void Navigation::CreateScene()
     orbitalCameraNode = scene_->CreateChild("CameraRoot");
     orbitalCamera = orbitalCameraNode->CreateComponent<ThirdPersonCamera>();
 
+    /*
+    */
+    Color colours[17];
+    colours[0] = Color(0, 31, 63);
+    colours[1] = Color(0, 116, 217);
+    colours[2] = Color(127, 219, 255);
+    colours[3] = Color(57, 219, 255);
+    colours[4] = Color(57, 204, 204);
+    colours[5] = Color(61, 153, 112);
+    colours[6] = Color(46, 204, 64);
+    colours[7] = Color(1, 255, 112);
+    colours[8] = Color(255, 220, 0);
+    colours[9] = Color(255, 133, 27);
+    colours[10] = Color(255, 65, 54);
+    colours[11] = Color(133, 20, 75);
+    colours[12] = Color(240, 18, 190);
+    colours[13] = Color(177, 13, 201);
+    colours[14] = Color(17, 17, 17);
+    colours[15] = Color(170, 170, 170);
+    colours[16] = Color(221, 221, 221);
     // Create bodies
     std::random_device rd;
     std::mt19937 eng(rd());
     std::uniform_int_distribution<> distr(1000, 100000);
+    std::uniform_int_distribution<> colourChoice(0, 16);
     Vector3 pos;
     Vector<Vector3> created;
 
     // initial body (for camera target)
-    pos = Vector3(float(distr(eng)), float(distr(eng)), float(distr(eng)));
-    pos /= 1000;
+    pos = Vector3::ZERO;
     created.Push(pos);
-    orbitalCamera->SetTargetNode(CreateMushroom(pos));
+    orbitalCamera->SetTargetNode(CreateMushroom(pos, colours[colourChoice(eng)]));
 
     // make a bunch of spread out bodies
     bool tooClose;
     int i = 0;
-    while (i < 7) {
-        pos = Vector3(float(distr(eng)), float(distr(eng)), float(distr(eng)));
+    while (i < 100) {
+        pos += Vector3(float(distr(eng)), float(distr(eng)), float(distr(eng)));
         pos /= 1000;
         tooClose = false;
         for (int j=0; j < created.Size(); ++j) {
@@ -115,8 +136,9 @@ void Navigation::CreateScene()
         }
         if (tooClose == true)
             continue;
+        Color colour = colours[colourChoice(eng)];
         created.Push(pos);
-        CreateMushroom(pos);
+        CreateMushroom(pos, colour);
         ++i;
     }
 
@@ -276,12 +298,12 @@ void Navigation::AddOrRemoveObject()
         }
         else
         {
-            Node* newNode = CreateMushroom(hitPos);
+            // Node* newNode = CreateMushroom(hitPos);
         }
     }
 }
 
-Node* Navigation::CreateMushroom(const Vector3& pos)
+Node* Navigation::CreateMushroom(const Vector3& pos, Color colour)
 {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
 
@@ -291,7 +313,14 @@ Node* Navigation::CreateMushroom(const Vector3& pos)
     mushroomNode->SetScale(2.0f + Random(15));
     StaticModel* mushroomObject = mushroomNode->CreateComponent<StaticModel>();
     mushroomObject->SetModel(cache->GetResource<Model>("Models/Sphere.mdl"));
-    // mushroomObject->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml"));
+    Material* material = new Material(context_);
+    // ("Materials/DefaultMaterial.xml");
+    URHO3D_LOGINFO(colour.ToVector4().ToString());
+    if (material) {
+        material->SetShaderParameter("MatDiffColor", colour.ToVector4() / Vector4(255, 255, 255, 1));
+        material->SetShaderParameter("MatSpecColor", colour.ToVector4() / Vector4(255, 255, 255, 1));
+        mushroomObject->SetMaterial(material);
+    }
     mushroomObject->SetCastShadows(true);
 
     return mushroomNode;

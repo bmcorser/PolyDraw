@@ -123,7 +123,7 @@ private:
     void AddOrRemoveObject();
     void ConnectBodies();
     /// Create a mushroom object at position.
-    Node* CreateMushroom(const Vector3& pos);
+    Node* CreateMushroom(const Vector3& pos, Color colour);
     /// Utility function to raycast to the cursor position. Return true if hit
     bool Raycast(float maxDistance, Vector3& hitPos, Drawable*& hitDrawable);
     /// Handle the logic update event.
